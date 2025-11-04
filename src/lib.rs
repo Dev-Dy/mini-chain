@@ -1,6 +1,6 @@
 // ============================================================================
 // 🦀 Mini Blockchain Library in Rust (with Proof-of-Work)
-// Author: <Your Name> (@Dev-Dy)
+// Author: Dheeraj (@Dev-Dy)
 // Repository: https://github.com/Dev-Dy/mini_chain
 // ----------------------------------------------------------------------------
 // Adds Proof-of-Work (PoW) mining to the basic blockchain implementation.
