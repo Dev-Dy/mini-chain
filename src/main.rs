@@ -2,15 +2,14 @@ use mini_chain::Blockchain;
 use std::io::{self, Write};
 
 fn main() {
-    // Create blockchain with difficulty = 4 (adjustable)
-    let mut chain = Blockchain::new(4);
+    let mut chain = Blockchain::new(3); // start difficulty = 3
 
-    println!("🚀 Mini Blockchain (Proof-of-Work Enabled)");
-    println!("──────────────────────────────────────────");
+    println!("🚀 Adaptive Blockchain (Dynamic Difficulty Enabled)");
+    println!("──────────────────────────────────────────────");
     println!("Commands:");
-    println!("  <text> : Add new transaction block (will mine it)");
-    println!("  show   : Display current blockchain");
-    println!("  exit   : Exit program\n");
+    println!("  <text> : Add new block (auto-mines + adjusts difficulty)");
+    println!("  show   : Display blockchain");
+    println!("  exit   : Quit\n");
 
     loop {
         print!("> ");
@@ -26,13 +25,14 @@ fn main() {
                 break;
             }
             "show" => {
-                println!("\n📜 Current Blockchain:");
+                println!("\n📜 Blockchain State:");
                 chain.print_chain();
-                println!("✅ Chain valid: {}\n", chain.is_valid());
+                println!("✅ Chain valid: {}", chain.is_valid());
+                println!("Current difficulty: {}\n", chain.difficulty);
             }
             _ if !input.is_empty() => {
                 chain.add_block(input.into());
-                println!("✅ Block successfully mined and added!");
+                println!("✅ Block added | New difficulty: {}\n", chain.difficulty);
             }
             _ => continue,
         }

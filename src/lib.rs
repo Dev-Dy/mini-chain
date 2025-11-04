@@ -7,9 +7,9 @@
 // Blocks now require computational work to be mined before inclusion.
 // ============================================================================
 
-use sha2::{Sha256, Digest};
-use chrono::{Utc, Duration};
-use serde::{Serialize, Deserialize};
+use chrono::Utc;
+use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 
 // ============================================================================
 // 🧱 BLOCK STRUCTURE
@@ -95,6 +95,75 @@ pub struct Blockchain {
 }
 
 impl Blockchain {
+    /// Dynamically adjusts mining difficulty based on average block mining time.
+    ///
+    /// # Purpose
+    /// Keeps the blockchain’s mining rate stable by increasing or decreasing
+    /// difficulty depending on how fast recent blocks were mined.
+    ///
+    /// # Details
+    /// - If average block time < target, increase difficulty.
+    /// - If average block time > target, decrease difficulty.
+    /// - Adjustment occurs every `DIFFICULTY_WINDOW` blocks.
+    ///
+    /// # Returns
+    /// Updated difficulty as `usize`.
+    pub fn adjust_difficulty(&mut self) -> usize {
+        const TARGET_TIME: i64 = 10; // target: 10 seconds per block
+        const DIFFICULTY_WINDOW: usize = 3; // adjust every 3 blocks
+        const MAX_DIFFICULTY: usize = 6;
+        const MIN_DIFFICULTY: usize = 1;
+
+        // Skip if not enough blocks yet
+        if self.blocks.len() <= DIFFICULTY_WINDOW {
+            return self.difficulty;
+        }
+
+        // Calculate time difference between the last N blocks
+        let recent = &self.blocks[self.blocks.len() - DIFFICULTY_WINDOW..];
+        let total_time: i64 = recent
+            .windows(2)
+            .map(|pair| pair[1].timestamp - pair[0].timestamp)
+            .sum();
+
+        let avg_time = total_time / (DIFFICULTY_WINDOW as i64 - 1);
+
+        // Adjust difficulty based on performance
+        if avg_time < TARGET_TIME && self.difficulty < MAX_DIFFICULTY {
+            self.difficulty += 1;
+            println!(
+                "⚙️ Increased difficulty to {} (avg_time={}s)",
+                self.difficulty, avg_time
+            );
+        } else if avg_time > TARGET_TIME && self.difficulty > MIN_DIFFICULTY {
+            self.difficulty -= 1;
+            println!(
+                "⚙️ Decreased difficulty to {} (avg_time={}s)",
+                self.difficulty, avg_time
+            );
+        } else {
+            println!(
+                "⚙️ Difficulty stable at {} (avg_time={}s)",
+                self.difficulty, avg_time
+            );
+        }
+
+        self.difficulty
+    }
+
+    /// Adds and mines a new block, then automatically adjusts difficulty.
+    pub fn add_block(&mut self, data: String) {
+        let previous_hash = self.blocks.last().unwrap().hash.clone();
+        let mut new_block = Block::new(self.blocks.len() as u64, data, previous_hash);
+        new_block.mine_block(self.difficulty);
+
+        // Add block to chain
+        self.blocks.push(new_block);
+
+        // After adding, adjust difficulty dynamically
+        self.adjust_difficulty();
+    }
+
     /// Creates a new blockchain with a genesis block and difficulty.
     pub fn new(difficulty: usize) -> Self {
         let mut chain = Blockchain {
@@ -110,14 +179,6 @@ impl Blockchain {
         let mut genesis_block = Block::new(0, "Genesis Block".into(), "0".into());
         genesis_block.mine_block(self.difficulty);
         self.blocks.push(genesis_block);
-    }
-
-    /// Adds and mines a new block with the given data.
-    pub fn add_block(&mut self, data: String) {
-        let previous_hash = self.blocks.last().unwrap().hash.clone();
-        let mut new_block = Block::new(self.blocks.len() as u64, data, previous_hash);
-        new_block.mine_block(self.difficulty);
-        self.blocks.push(new_block);
     }
 
     /// Verifies that all blocks and links are valid.

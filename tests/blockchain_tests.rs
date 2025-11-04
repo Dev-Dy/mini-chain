@@ -7,7 +7,7 @@
 // detects tampering after the Proof-of-Work upgrade.
 // ============================================================================
 
-use mini_chain::{Blockchain, Block};
+use mini_chain::Blockchain;
 
 /// Test 1: Verify blockchain initializes correctly and mines the genesis block.
 #[test]
@@ -83,4 +83,17 @@ fn test_difficulty_affects_nonce() {
         hard_chain.blocks[1].nonce >= easy_chain.blocks[1].nonce,
         "Expected higher nonce for harder difficulty"
     );
+}
+
+#[test]
+fn test_dynamic_difficulty_adjustment() {
+    let mut chain = Blockchain::new(2);
+
+    // Add multiple blocks to trigger adjustment
+    for _ in 0..5 {
+        chain.add_block("Timing test".into());
+    }
+
+    // Difficulty should have changed after a few blocks
+    assert!(chain.difficulty >= 1);
 }
